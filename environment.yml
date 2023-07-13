@@ -1,0 +1,17 @@
+name: cs7643-project
+channels:
+  - defaults
+dependencies:
+  - python==3.8.10
+  - matplotlib
+  - tqdm
+  - jupyter
+  - pip
+  - pip:
+    - pandas==2.0.0
+    - numpy==1.24.4
+    - yfinance==0.2.20
+    - tushare==1.2.89
+    - stockstats==0.6.0
+    - tqdm==4.65.0
+    - requests==2.29.0
