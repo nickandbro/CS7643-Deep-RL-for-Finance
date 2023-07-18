@@ -33,12 +33,19 @@ def get_preprocessed_data(symbols):
     df = fe.preprocess_data(df)
     df["date"] = pd.to_datetime(df["date"])
 
-    av_loader = AlphaVantageLoader(
-        api_key=configs['API_KEYS']["ALPHA_VANTAGE"], 
-        symbols=symbols
-    )
-    df = av_loader.fetch_data(
-        df=df,
-        fundamental_indicators=configs["INDICATORS"]["FUNDAMENTAL"]
-    )
+    # CAN'T USE THIS UNTIL API IS UPGRADED
+    
+    # av_loader = AlphaVantageLoader(
+    #     api_key=configs['API_KEYS']["ALPHA_VANTAGE"], 
+    #     symbols=symbols
+    # )
+    # df = av_loader.fetch_data(
+    #     df=df,
+    #     fundamental_indicators=configs["INDICATORS"]["FUNDAMENTAL"]
+    # )
+    # df = df.drop("Unnamed: 0", axis=1)
+
+    df = df.sort_values(['date','tic'],ignore_index=True)
+    df.index = df.date.factorize()[0]
+
     return df

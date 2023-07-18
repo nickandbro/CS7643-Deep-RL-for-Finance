@@ -139,17 +139,18 @@ class AlphaVantageLoader:
         res_df = pd.DataFrame()
         for tic in tqdm.tqdm(self.symbols):
             print(f"{tic} fundamental data loading...")
-            temp_df = self._join_features(df, tic, fundamental_indicators)
+            temp_df = self._join_fundamental_features(df, tic, fundamental_indicators)
             res_df = pd.concat([res_df, temp_df], axis=0)
+        res_df = self._join_yield_curves(res_df, fundamental_indicators)
         return res_df
     
-    def _join_features(self, df, tic, fundamental_indicators):
+    def _join_yield_curves(self, df, fundamental_indicators):
         if "3month_yield" in fundamental_indicators:
             feat_df = self.get_treasury_data("daily", "3month")
             df = df.merge(
                 feat_df, 
                 how="left", 
-                on=["date", "tic"]
+                on="date"
             ).fillna(method="ffill")
 
         if "2year_yield" in fundamental_indicators:
@@ -157,7 +158,7 @@ class AlphaVantageLoader:
             df = df.merge(
                 feat_df, 
                 how="left", 
-                on=["date", "tic"]
+                on="date"
             ).fillna(method="ffill")
 
         if "5year_yield" in fundamental_indicators:
@@ -165,7 +166,7 @@ class AlphaVantageLoader:
             df = df.merge(
                 feat_df, 
                 how="left", 
-                on=["date", "tic"]
+                on="date"
             ).fillna(method="ffill")
 
         if "7year_yield" in fundamental_indicators:
@@ -173,7 +174,7 @@ class AlphaVantageLoader:
             df = df.merge(
                 feat_df, 
                 how="left", 
-                on=["date", "tic"]
+                on="date"
             ).fillna(method="ffill")
 
         if "10year_yield" in fundamental_indicators:
@@ -181,7 +182,7 @@ class AlphaVantageLoader:
             df = df.merge(
                 feat_df, 
                 how="left", 
-                on=["date", "tic"]
+                on="date"
             ).fillna(method="ffill")
 
         if "30year_yield" in fundamental_indicators:
@@ -189,9 +190,12 @@ class AlphaVantageLoader:
             df = df.merge(
                 feat_df, 
                 how="left", 
-                on=["date", "tic"]
+                on="date"
             ).fillna(method="ffill")
-
+        return df
+    
+    def _join_fundamental_features(self, df, tic, fundamental_indicators):
+        df = df[df["tic"] == tic]
         if "earnings" in fundamental_indicators:
             feat_df = self.get_fundamental_data(
                 function="EARNINGS",
@@ -266,6 +270,8 @@ class AlphaVantageLoader:
             key=self.api_key,
         )
         r = requests.get(url)
+        if r.status_code != 200:
+            raise Exception(f"Issue with loading fundamental data: {r.status_code}")
         data = r.json()
 
         if function == "EARNINGS":
@@ -307,6 +313,8 @@ class AlphaVantageLoader:
             key=self.api_key,
         )
         r = requests.get(url)
+        if r.status_code != 200:
+            raise Exception(f"Issue with loading treasury data: {r.status_code}")
         data = r.json()
 
         df = pd.DataFrame(data['data'])
@@ -342,6 +350,8 @@ class AlphaVantageLoader:
             function=function,
         )
         r = requests.get(url)
+        if r.status_code != 200:
+            raise Exception(f"Issue with loading time series data: {r.status_code}")
         data = r.json()
 
         return data

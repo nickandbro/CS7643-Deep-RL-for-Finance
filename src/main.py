@@ -21,7 +21,7 @@ from preprocessing.preprocess import get_preprocessed_data
 
 def run_preprocessing():
     data = get_preprocessed_data(symbols=["NVDA", "AAPL", "META", "IBM"])
-    data.to_csv("./data/baseline_data_large_cap.csv")
+    data.to_csv("./data/baseline_data_large_cap_no_fundamentals.csv")
 
 
 if __name__ == "__main__":

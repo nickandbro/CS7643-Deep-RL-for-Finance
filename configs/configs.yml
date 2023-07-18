@@ -21,9 +21,9 @@ INDICATORS :
     "close_60_sma",
   ]
   FUNDAMENTAL : [
-    "2year",
-    "10year",
-    "30year",
+    "2year_yield",
+    "10year_yield",
+    "30year_yield",
     "earnings",
   ]
 
