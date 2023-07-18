@@ -8,6 +8,8 @@ DATES:
   TEST:
     START_DATE : "2021-11-01"
     END_DATE : "2021-12-01"
+  
+SYMBOLS: ["NVDA", "AAPL", "META", "IBM"]
 
 INDICATORS : 
   TECHNICAL : [

@@ -34,7 +34,7 @@ def get_preprocessed_data(symbols):
     df["date"] = pd.to_datetime(df["date"])
 
     # CAN'T USE THIS UNTIL API IS UPGRADED
-    
+
     # av_loader = AlphaVantageLoader(
     #     api_key=configs['API_KEYS']["ALPHA_VANTAGE"], 
     #     symbols=symbols
@@ -48,4 +48,17 @@ def get_preprocessed_data(symbols):
     df = df.sort_values(['date','tic'],ignore_index=True)
     df.index = df.date.factorize()[0]
 
-    return df
+    train = df[
+        (df["date"] <= configs["DATES"]["TRAIN"]["START_DATE"]) 
+        & (df["date"] >= configs["DATES"]["TRAIN"]["END_DATE"])
+    ]
+    val = df[
+        (df["date"] <= configs["DATES"]["VAL"]["START_DATE"]) 
+        & (df["date"] >= configs["DATES"]["VAL"]["END_DATE"])
+    ]
+    test = df[
+        (df["date"] <= configs["DATES"]["TEST"]["START_DATE"]) 
+        & (df["date"] >= configs["DATES"]["TEST"]["END_DATE"])
+    ]
+
+    return train, val, test

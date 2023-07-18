@@ -24,10 +24,12 @@ configs=load_configs()
 
 
 def run_preprocessing():
-    data = get_preprocessed_data(symbols=["NVDA", "AAPL", "META", "IBM"])
-    data.to_csv("./data/baseline_data_large_cap_no_fundamentals.csv")
+    train, val, test = get_preprocessed_data(symbols=configs["SYMBOLS"])
+    train.to_csv("./data/train_baseline_data_large_cap_no_fundamentals.csv")
+    val.to_csv("./data/val_baseline_data_large_cap_no_fundamentals.csv")
+    test.to_csv("./data/test_baseline_data_large_cap_no_fundamentals.csv")
 
-def create_stock_portfolio_env(path="./data/baseline_data_large_cap_no_fundamentals.csv"):
+def create_stock_portfolio_env(path):
     df = pd.read_csv(path, index_col="Unnamed: 0")
     num_stocks = len(df.tic.unique())
     env = StockPortfolioEnv(
@@ -45,4 +47,4 @@ def create_stock_portfolio_env(path="./data/baseline_data_large_cap_no_fundament
 
 if __name__ == "__main__":
     # run_preprocessing()
-    env = create_stock_portfolio_env()
+    env = create_stock_portfolio_env("./data/baseline_data_large_cap_no_fundamentals.csv")
