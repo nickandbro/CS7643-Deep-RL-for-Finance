@@ -76,8 +76,6 @@ class StockPortfolioEnv(gym.Env):
         lookback=252,
         day=0,
     ):
-        # super(StockEnv, self).__init__()
-        # money = 10 , scope = 1
         self.day = day
         self.lookback = lookback
         self.df = df
@@ -103,12 +101,7 @@ class StockPortfolioEnv(gym.Env):
 
         # load data from a pandas dataframe
         self.data = self.df.loc[self.day, :]
-        self.covs = self.data["cov_list"].values[0]
-        self.state = np.append(
-            np.array(self.covs),
-            [self.data[tech].values.tolist() for tech in self.tech_indicator_list],
-            axis=0,
-        )
+        self.state = np.array([self.data[tech].values.tolist() for tech in self.tech_indicator_list])
         self.terminal = False
         self.turbulence_threshold = turbulence_threshold
         # initalize state: inital portfolio return + individual stock return + individual weights
@@ -118,12 +111,82 @@ class StockPortfolioEnv(gym.Env):
         self.asset_memory = [self.initial_amount]
         # memorize portfolio return each step
         self.portfolio_return_memory = [0]
-        self.actions_memory = [[1 / self.stock_dim] * self.stock_dim]
+        self.actions_memory = [[1 / (self.stock_dim + 1)] * (self.stock_dim + 1)] # +1 for cash
         self.date_memory = [self.data.date.unique()[0]]
 
     def step(self, actions):
-        pass
+        
+        self.terminal = self.day >= len(self.df.index.unique()) - 1
+
+        if self.terminal:
+            df = pd.DataFrame(self.portfolio_return_memory)
+            df.columns = ["daily_return"]
+            plt.plot(df.daily_return.cumsum(), "r")
+            plt.savefig("results/cumulative_reward.png")
+            plt.close()
+
+            plt.plot(self.portfolio_return_memory, "r")
+            plt.savefig("results/rewards.png")
+            plt.close()
+
+            print("=================================")
+            print("begin_total_asset:{}".format(self.asset_memory[0]))
+            print("end_total_asset:{}".format(self.portfolio_value))
+
+            df_daily_return = pd.DataFrame(self.portfolio_return_memory)
+            df_daily_return.columns = ["daily_return"]
+            if df_daily_return["daily_return"].std() != 0:
+                sharpe = (
+                    (252**0.5)
+                    * df_daily_return["daily_return"].mean()
+                    / df_daily_return["daily_return"].std()
+                )
+                print("Sharpe: ", sharpe)
+            print("=================================")
+
+            return self.state, self.reward, self.terminal, {}
+
+        else:
+            weights = actions
+            self.actions_memory.append(weights)
+            last_day_memory = self.data
+
+            # load next state
+            self.day += 1
+            self.data = self.df.loc[self.day, :]
+            self.state = np.array([self.data[tech].values.tolist() for tech in self.tech_indicator_list])
+            change_arr = ((self.data.close.values / last_day_memory.close.values) - 1)
+            portfolio_return = sum(
+                np.append(change_arr, 0) * weights
+            )
+            log_portfolio_return = np.log(
+                portfolio_return
+            )
+            # update portfolio value
+            new_portfolio_value = self.portfolio_value * (1 + portfolio_return)
+            self.portfolio_value = new_portfolio_value
+
+            # save into memory
+            self.portfolio_return_memory.append(portfolio_return)
+            self.date_memory.append(self.data.date.unique()[0])
+            self.asset_memory.append(new_portfolio_value)
+
+            # the reward is the new portfolio value or end portfolo value
+            self.reward = new_portfolio_value
+
+        return self.state, self.reward, self.terminal, {}
+    
     def reset(self):
-        pass
-    def render(self, mode="human"):
+        self.asset_memory = [self.initial_amount]
+        self.day = 0
+        self.data = self.df.loc[self.day, :]
+        # load states
+        self.state = np.array([self.data[tech].values.tolist() for tech in self.tech_indicator_list])
+        self.portfolio_value = self.initial_amount
+        # self.cost = 0
+        # self.trades = 0
+        self.terminal = False
+        self.portfolio_return_memory = [0]
+        self.actions_memory = [[1 / (self.stock_dim + 1)] * (self.stock_dim + 1)]
+        self.date_memory = [self.data.date.unique()[0]]
         return self.state
