@@ -1,15 +1,17 @@
 DATES:
   TRAIN:
-    START_DATE : "2014-01-06"
-    END_DATE : "2020-07-31"
+    START_DATE : "2006-01-06"
+    END_DATE : "2021-07-31"
   VAL:
-    START_DATE : "2020-08-01"
-    END_DATE : "2021-10-01"
+    START_DATE : "2021-08-01"
+    END_DATE : "2021-11-30"
   TEST:
-    START_DATE : "2021-11-01"
-    END_DATE : "2021-12-01"
+    START_DATE : "2021-12-01"
+    END_DATE : "2023-07-01"
   
-SYMBOLS: ["NVDA", "AAPL", "META", "IBM"]
+# SYMBOLS: ["NVDA", "AAPL", "META", "IBM"]
+# SYMBOLS: ["NVDA"]
+SYMBOLS: ["STZ", "INTC", "IBM", "KR", "MCD", "CMG", "HD"]
 
 INDICATORS : 
   TECHNICAL : [
@@ -23,10 +25,10 @@ INDICATORS :
     "close_60_sma",
   ]
   FUNDAMENTAL : [
-    "2year_yield",
-    "10year_yield",
-    "30year_yield",
-    "earnings",
+    "2year_rate",
+    "10year_rate",
+    "30year_rate",
+    # "earnings",
   ]
 
 # parameters for data sources

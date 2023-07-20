@@ -4,6 +4,10 @@ from gym.utils import seeding
 import gym
 from gym import spaces
 import matplotlib
+import matplotlib.dates as mdates
+
+import os
+import sys
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
@@ -67,6 +71,7 @@ class StockPortfolioEnv(gym.Env):
         stock_dim,
         hmax,
         initial_amount,
+        start_all_cash,
         transaction_cost_pct,
         reward_scaling,
         state_space,
@@ -82,6 +87,7 @@ class StockPortfolioEnv(gym.Env):
         self.stock_dim = stock_dim
         self.hmax = hmax
         self.initial_amount = initial_amount
+        self.start_all_cash = start_all_cash
         self.transaction_cost_pct = transaction_cost_pct
         self.reward_scaling = reward_scaling
         self.state_space = state_space
@@ -89,18 +95,19 @@ class StockPortfolioEnv(gym.Env):
         self.tech_indicator_list = tech_indicator_list
 
         # action_space normalization and shape is self.stock_dim
-        self.action_space = spaces.Box(low=0, high=1, shape=(self.action_space,))
+        # self.action_space = spaces.Box(low=0, high=1, shape=(self.action_space,))
+        self.action_space = spaces.Box(low=-1000, high=1000, shape=(self.action_space,))
         self.observation_space = spaces.Box(
             low=-np.inf,
             high=np.inf,
             shape=(
-                self.state_space + len(self.tech_indicator_list),
+                len(self.tech_indicator_list),
                 self.state_space,
             ),
         )
 
         # load data from a pandas dataframe
-        self.data = self.df.loc[self.day, :]
+        self.data = self.df.loc[[self.day]]
         self.state = np.array([self.data[tech].values.tolist() for tech in self.tech_indicator_list])
         self.terminal = False
         self.turbulence_threshold = turbulence_threshold
@@ -111,7 +118,10 @@ class StockPortfolioEnv(gym.Env):
         self.asset_memory = [self.initial_amount]
         # memorize portfolio return each step
         self.portfolio_return_memory = [0]
-        self.actions_memory = [[1 / (self.stock_dim + 1)] * (self.stock_dim + 1)] # +1 for cash
+        if self.start_all_cash:
+             self.actions_memory = [[0] * self.stock_dim + [1]] # +1 for cash
+        else:
+            self.actions_memory = [[1 / (self.stock_dim + 1)] * (self.stock_dim + 1)] # +1 for cash
         self.date_memory = [self.data.date.unique()[0]]
 
     def step(self, actions):
@@ -119,9 +129,21 @@ class StockPortfolioEnv(gym.Env):
         self.terminal = self.day >= len(self.df.index.unique()) - 1
 
         if self.terminal:
-            df = pd.DataFrame(self.portfolio_return_memory)
+            # df = pd.DataFrame(self.portfolio_return_memory)
+            df = pd.DataFrame(np.array(self.asset_memory)/self.initial_amount)
             df.columns = ["daily_return"]
-            plt.plot(df.daily_return.cumsum(), "r")
+            # df.index = self.date_memory
+            df["date"] = self.date_memory
+            # df["cum_return"] = df.daily_return.cumsum()
+            fig, ax = plt.subplots(1,1,figsize=(8,6))
+            ax.plot("date", "daily_return", data=df)
+            ax.xaxis.set_major_locator(mdates.MonthLocator(bymonth=(1, 7)))
+
+            path = f"./results"
+            if not os.path.exists(path):
+                os.makedirs(path)
+            
+            plt.gcf().autofmt_xdate()
             plt.savefig("results/cumulative_reward.png")
             plt.close()
 
@@ -132,6 +154,15 @@ class StockPortfolioEnv(gym.Env):
             print("=================================")
             print("begin_total_asset:{}".format(self.asset_memory[0]))
             print("end_total_asset:{}".format(self.portfolio_value))
+
+            weight_df = pd.DataFrame(self.actions_memory)
+            weight_df.columns = list(self.df.tic.unique()) + ["cash"]
+            weight_df.index = self.date_memory
+            weight_df.to_csv("results/actions_memory.csv")
+            
+            weight_arr = np.array(self.actions_memory)
+            weight_arr = np.mean(weight_arr, axis=0)
+            pd.DataFrame(weight_arr).to_csv("results/actions_weight_means.csv")
 
             df_daily_return = pd.DataFrame(self.portfolio_return_memory)
             df_daily_return.columns = ["daily_return"]
@@ -147,21 +178,20 @@ class StockPortfolioEnv(gym.Env):
             return self.state, self.reward, self.terminal, {}
 
         else:
-            weights = actions
+            weights = self.softmax_normalization(actions)
+            # weights = self.sigmoid_normalization(actions)
             self.actions_memory.append(weights)
             last_day_memory = self.data
 
             # load next state
             self.day += 1
-            self.data = self.df.loc[self.day, :]
+            self.data = self.df.loc[[self.day]]
             self.state = np.array([self.data[tech].values.tolist() for tech in self.tech_indicator_list])
             change_arr = ((self.data.close.values / last_day_memory.close.values) - 1)
             portfolio_return = sum(
                 np.append(change_arr, 0) * weights
             )
-            log_portfolio_return = np.log(
-                portfolio_return
-            )
+
             # update portfolio value
             new_portfolio_value = self.portfolio_value * (1 + portfolio_return)
             self.portfolio_value = new_portfolio_value
@@ -172,21 +202,63 @@ class StockPortfolioEnv(gym.Env):
             self.asset_memory.append(new_portfolio_value)
 
             # the reward is the new portfolio value or end portfolo value
-            self.reward = new_portfolio_value
+            # self.reward = new_portfolio_value * self.reward_scaling
+            self.reward = portfolio_return * self.reward_scaling
 
         return self.state, self.reward, self.terminal, {}
     
     def reset(self):
         self.asset_memory = [self.initial_amount]
         self.day = 0
-        self.data = self.df.loc[self.day, :]
+        self.data = self.df.loc[[self.day]]
         # load states
         self.state = np.array([self.data[tech].values.tolist() for tech in self.tech_indicator_list])
         self.portfolio_value = self.initial_amount
-        # self.cost = 0
-        # self.trades = 0
         self.terminal = False
         self.portfolio_return_memory = [0]
-        self.actions_memory = [[1 / (self.stock_dim + 1)] * (self.stock_dim + 1)]
+        self.portfolio_return_memory = [0]
+        if self.start_all_cash:
+             self.actions_memory = [[0] * self.stock_dim + [1]] # +1 for cash
+        else:
+            self.actions_memory = [[1 / (self.stock_dim + 1)] * (self.stock_dim + 1)] # +1 for cash
         self.date_memory = [self.data.date.unique()[0]]
         return self.state
+    
+    def softmax_normalization(self, actions):
+        numerator = np.exp(actions)
+        denominator = np.sum(np.exp(actions))
+        softmax_output = numerator/denominator
+        return softmax_output
+
+    def sigmoid_normalization(self, actions):
+        return 1/(1 + np.exp(-1 * np.array(actions)))
+    
+    def _seed(self, seed=None):
+        self.np_random, seed = seeding.np_random(seed)
+        return [seed]
+
+    def get_sb_env(self):
+        e = DummyVecEnv([lambda: self])
+        obs = e.reset()
+        return e, obs
+    
+    def save_asset_memory(self):
+        date_list = self.date_memory
+        portfolio_return = self.portfolio_return_memory
+        #print(len(date_list))
+        #print(len(asset_list))
+        df_account_value = pd.DataFrame({'date':date_list,'daily_return':portfolio_return})
+        return df_account_value
+
+    def save_action_memory(self):
+        # date and close price length must match actions length
+        date_list = self.date_memory
+        df_date = pd.DataFrame(date_list)
+        df_date.columns = ['date']
+        
+        action_list = self.actions_memory
+        df_actions = pd.DataFrame(action_list)
+        df_actions.columns = list(self.data.tic.values) + ["cash"]
+        df_actions.index = df_date.date
+        #df_actions = pd.DataFrame({'date':date_list,'actions':action_list})
+        return df_actions
