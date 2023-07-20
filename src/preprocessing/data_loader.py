@@ -145,7 +145,7 @@ class AlphaVantageLoader:
         return res_df
     
     def _join_yield_curves(self, df, fundamental_indicators):
-        if "3month_yield" in fundamental_indicators:
+        if "3month_rate" in fundamental_indicators:
             feat_df = self.get_treasury_data("daily", "3month")
             df = df.merge(
                 feat_df, 
@@ -153,7 +153,7 @@ class AlphaVantageLoader:
                 on="date"
             ).fillna(method="ffill")
 
-        if "2year_yield" in fundamental_indicators:
+        if "2year_rate" in fundamental_indicators:
             feat_df = self.get_treasury_data("daily", "2year")
             df = df.merge(
                 feat_df, 
@@ -161,7 +161,7 @@ class AlphaVantageLoader:
                 on="date"
             ).fillna(method="ffill")
 
-        if "5year_yield" in fundamental_indicators:
+        if "5year_rate" in fundamental_indicators:
             feat_df = self.get_treasury_data("daily", "5year")
             df = df.merge(
                 feat_df, 
@@ -169,7 +169,7 @@ class AlphaVantageLoader:
                 on="date"
             ).fillna(method="ffill")
 
-        if "7year_yield" in fundamental_indicators:
+        if "7year_rate" in fundamental_indicators:
             feat_df = self.get_treasury_data("daily", "7year")
             df = df.merge(
                 feat_df, 
@@ -177,7 +177,7 @@ class AlphaVantageLoader:
                 on="date"
             ).fillna(method="ffill")
 
-        if "10year_yield" in fundamental_indicators:
+        if "10year_rate" in fundamental_indicators:
             feat_df = self.get_treasury_data("daily", "10year")
             df = df.merge(
                 feat_df, 
@@ -185,13 +185,15 @@ class AlphaVantageLoader:
                 on="date"
             ).fillna(method="ffill")
 
-        if "30year_yield" in fundamental_indicators:
+        if "30year_rate" in fundamental_indicators:
             feat_df = self.get_treasury_data("daily", "30year")
             df = df.merge(
                 feat_df, 
                 how="left", 
                 on="date"
             ).fillna(method="ffill")
+        df = df.replace('.',np.nan).ffill()
+
         return df
     
     def _join_fundamental_features(self, df, tic, fundamental_indicators):
