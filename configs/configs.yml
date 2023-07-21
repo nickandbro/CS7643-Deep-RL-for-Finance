@@ -1,7 +1,7 @@
 DATES:
   TRAIN:
-    START_DATE : "2006-01-06"
-    END_DATE : "2021-07-31"
+    START_DATE : "2006-01-01"
+    END_DATE : "2014-12-31"
   VAL:
     START_DATE : "2021-08-01"
     END_DATE : "2021-11-30"
@@ -11,7 +11,7 @@ DATES:
   
 # SYMBOLS: ["NVDA", "AAPL", "META", "IBM"]
 # SYMBOLS: ["NVDA"]
-SYMBOLS: ["STZ", "INTC", "IBM", "KR", "MCD", "CMG", "HD"]
+SYMBOLS: ["SPY"]
 
 INDICATORS : 
   TECHNICAL : [
@@ -28,6 +28,7 @@ INDICATORS :
     "2year_rate",
     "10year_rate",
     "30year_rate",
+    "vix"
     # "earnings",
   ]
 
@@ -40,11 +41,22 @@ URLS:
   TREASURY_DATA: 'https://www.alphavantage.co/query?function=TREASURY_YIELD&interval={interval}&maturity={maturity}&apikey={key}'
   TIME_SERIES_DATA: 'https://www.alphavantage.co/query?function={function}&symbol={symbol}&interval={interval}&apikey={key}&outputsize=full'
 
+PPO_PARAMS : {
+    "ppo":{
+        "n_steps": 2048,
+        "ent_coef": 0.005,
+        "learning_rate": 0.0003, #0.001 for multi stock portfolio weight
+        "batch_size": 128,
+        "gamma": 0.999,
+        }
+    }
 
 # DATA_SAVE_DIR : "datasets"
 # TRAINED_MODEL_DIR : "trained_models"
 # TENSORBOARD_LOG_DIR : "tensorboard_log"
 # RESULTS_DIR : "results"
+
+
 
 # # Model Parameters
 # A2C_PARAMS : {"n_steps": 5, "ent_coef": 0.01, "learning_rate": 0.0007}

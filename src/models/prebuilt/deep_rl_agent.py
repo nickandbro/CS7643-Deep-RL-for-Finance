@@ -15,17 +15,18 @@ from stable_baselines3.common.noise import NormalActionNoise
 from stable_baselines3.common.noise import OrnsteinUhlenbeckActionNoise
 from stable_baselines3.common.vec_env import DummyVecEnv
 
+import os
+import sys
+
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(os.path.dirname(SCRIPT_DIR))
+
+from resources.helper import load_configs
+
+configs = load_configs()
 MODELS = {"a2c": A2C, "ddpg": DDPG, "td3": TD3, "sac": SAC, "ppo": PPO}
 
-MODEL_KWARGS = {
-    "ppo":{
-        "n_steps": 2048,
-        "ent_coef": 0.005,
-        "learning_rate": 0.005,
-        "batch_size": 64,
-        "gamma": 0.9999,
-        }
-    }
+MODEL_KWARGS = configs["PPO_PARAMS"]
 
 NOISE = {
     "normal": NormalActionNoise,
