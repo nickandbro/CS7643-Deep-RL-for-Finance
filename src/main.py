@@ -20,6 +20,7 @@ sys.path.append(os.path.dirname(SCRIPT_DIR))
 
 from preprocessing.preprocess import get_preprocessed_data
 from rl_environments.stock_portfolio_env import StockPortfolioEnv
+from rl_environments.stock_env import StockTradingEnv
 from resources.helper import load_configs
 from models.prebuilt.deep_rl_agent import PPOAgent
 
@@ -51,6 +52,30 @@ def create_stock_portfolio_env(path):
     )
     return env
 
+def create_stock_env(path, model_name, mode):
+    df = pd.read_csv(path, index_col="Unnamed: 0")
+    df.index = df.reset_index()["index"] - df.reset_index()["index"].min()
+    num_stocks = len(df.tic.unique())
+    if num_stocks != 1:
+        raise ValueError("You can only use 1 stock for this env.")
+    ind = configs["INDICATORS"]["TECHNICAL"] + configs["INDICATORS"]["FUNDAMENTAL"]
+    env = StockTradingEnv(
+        df=df,
+        stock_dim=num_stocks,
+        hmax=100,
+        initial_amount=1000000,
+        num_stock_shares=[0]*num_stocks,
+        reward_scaling=1,
+        state_space=1 + 2 * num_stocks + len(ind) * num_stocks,
+        action_space=num_stocks,
+        tech_indicator_list=ind,
+        buy_cost_pct=[0.001] * num_stocks,
+        sell_cost_pct=[0.001] * num_stocks,
+        model_name=model_name,
+        mode=mode,
+    )
+    return env
+
 def test_base_agent(env, timesteps, specified_weight_arr=None):
     """
     base agent tests equal weights over time or specified constant weights over time.
@@ -69,11 +94,15 @@ def test_base_agent(env, timesteps, specified_weight_arr=None):
             break
     return cumulative_rewards
 
-def test_env(env, action, steps=5):
+def test_env(env, action=None, steps=5):
     rewards = []
     for _ in range(5):
-        s, r, t, i = env.step(action)
-        print(env.data)
+        if action is None:
+            action = env.action_space.sample()
+        if env.__class__.__name__ == "StockTradingEnv":
+            s, r, t, _, _ = env.step(action)
+        else:
+            s, r, t, i = env.step(action)
         rewards.append(r)
     return rewards
 
@@ -93,22 +122,42 @@ def test_agent(model, test_env):
     )
     return df_daily_return_ppo, df_actions_ppo
 
-def main():
-    run_preprocessing()
+def main(problem="single_stock", needs_preproccess=True):
+    if needs_preproccess:
+        run_preprocessing()
 
-    env = create_stock_portfolio_env("./data/train_large_cap_no_fundamentals.csv")
-    trained_ppo_model = train_agent(env, 250000)
+    if problem == "single_stock":
+        env = create_stock_env(path="./data/train_large_cap_no_fundamentals.csv", model_name="PPO", mode="single_stock_SPY")
+        trained_ppo_model = train_agent(env, 250000)
 
-    try:
-        trained_ppo_model.save("./trained_models/ppo_large_cap.zip")
-    except Exception as e:
-        print(e)
+        try:
+            trained_ppo_model.save("./trained_models/ppo_single_stock.zip")
+        except Exception as e:
+            print(e)
+        
+        test_env = create_stock_env(path="./data/test_large_cap_no_fundamentals.csv", model_name="PPO", mode="single_stock_SPY")
+        trained_ppo_model = PPO.load("./trained_models/ppo_single_stock.zip")
+        df_daily_return_ppo, df_actions_ppo = test_agent(trained_ppo_model, test_env)
+        print(df_daily_return_ppo)
+        print(df_actions_ppo)
+    elif problem == "portfolio_allocation":
+        env = create_stock_portfolio_env("./data/train_large_cap_no_fundamentals.csv")
+        trained_ppo_model = train_agent(env, 250000)
 
-    test_env = create_stock_portfolio_env("./data/test_large_cap_no_fundamentals.csv")
-    trained_ppo_model = PPO.load("./trained_models/ppo_large_cap.zip")
-    df_daily_return_ppo, df_actions_ppo = test_agent(trained_ppo_model, test_env)
-    print(df_daily_return_ppo)
-    print(df_actions_ppo)
+        try:
+            trained_ppo_model.save("./trained_models/ppo_large_cap.zip")
+        except Exception as e:
+            print(e)
+
+        test_env = create_stock_portfolio_env("./data/test_large_cap_no_fundamentals.csv")
+        trained_ppo_model = PPO.load("./trained_models/ppo_large_cap.zip")
+        df_daily_return_ppo, df_actions_ppo = test_agent(trained_ppo_model, test_env)
+        print(df_daily_return_ppo)
+        print(df_actions_ppo)
+    else:
+        raise ValueError("please use 'single_stock' or 'portfolio_allocation' for problem")
 
 if __name__ == "__main__":
-    main()
+    main(problem="single_stock", needs_preproccess=True)
+
+## Implement own PPO algorithm with 1 stock over time
