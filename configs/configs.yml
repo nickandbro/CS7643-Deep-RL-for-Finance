@@ -10,8 +10,8 @@ DATES:
     END_DATE : "2023-07-01"
   
 # SYMBOLS: ["NVDA", "AAPL", "META", "IBM"]
-# SYMBOLS: ["NVDA"]
 SYMBOLS: ["SPY"]
+# SYMBOLS: ["SPY"]
 
 INDICATORS : 
   TECHNICAL : [
@@ -47,7 +47,7 @@ PPO_PARAMS : {
         "ent_coef": 0.005,
         "learning_rate": 0.0003, #0.001 for multi stock portfolio weight
         "batch_size": 128,
-        "gamma": 0.999,
+        "gamma": 0.9999, #.9999 for longer rewards
         }
     }
 
