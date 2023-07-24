@@ -21,6 +21,7 @@ sys.path.append(os.path.dirname(SCRIPT_DIR))
 from preprocessing.preprocess import get_preprocessed_data
 from rl_environments.stock_portfolio_env import StockPortfolioEnv
 from rl_environments.stock_env import StockTradingEnv
+from rl_environments.simple_stock_env import SimpleStockEnv
 from resources.helper import load_configs
 from models.prebuilt.deep_rl_agent import PPOAgent
 
@@ -56,16 +57,16 @@ def create_stock_env(path, model_name, mode):
     df = pd.read_csv(path, index_col="Unnamed: 0")
     df.index = df.reset_index()["index"] - df.reset_index()["index"].min()
     num_stocks = len(df.tic.unique())
-    if num_stocks != 1:
-        raise ValueError("You can only use 1 stock for this env.")
+    # if num_stocks != 1:
+    #     raise ValueError("You can only use 1 stock for this env.")
     ind = configs["INDICATORS"]["TECHNICAL"] + configs["INDICATORS"]["FUNDAMENTAL"]
     env = StockTradingEnv(
         df=df,
         stock_dim=num_stocks,
-        hmax=100,
+        hmax=10000,
         initial_amount=1000000,
         num_stock_shares=[0]*num_stocks,
-        reward_scaling=1,
+        reward_scaling=1e-4,
         state_space=1 + 2 * num_stocks + len(ind) * num_stocks,
         action_space=num_stocks,
         tech_indicator_list=ind,
@@ -73,6 +74,21 @@ def create_stock_env(path, model_name, mode):
         sell_cost_pct=[0.001] * num_stocks,
         model_name=model_name,
         mode=mode,
+    )
+    return env
+
+def create_simple_stock_env(path):
+    df = pd.read_csv(path, index_col="Unnamed: 0")
+    df.index = df.reset_index()["index"] - df.reset_index()["index"].min()
+    num_stocks = len(df.tic.unique())
+    if num_stocks != 1:
+        raise ValueError("You can only use 1 stock for this env.")
+    ind = configs["INDICATORS"]["TECHNICAL"] #+ configs["INDICATORS"]["FUNDAMENTAL"]
+    env = SimpleStockEnv(
+        df=df,
+        stock_dim=num_stocks,
+        initial_amount=1000000,
+        indicators=ind,
     )
     return env
 
@@ -94,12 +110,14 @@ def test_base_agent(env, timesteps, specified_weight_arr=None):
             break
     return cumulative_rewards
 
-def test_env(env, action=None, steps=5):
+def test_env_creation(env, action=None, steps=5):
     rewards = []
-    for _ in range(5):
-        if action is None:
+    if action is None:
+        action = env.action_space.sample()
+    for i in range(steps):
+        if i != 0:
             action = env.action_space.sample()
-        if env.__class__.__name__ == "StockTradingEnv":
+        if env.__class__.__name__ != "StockPortfolioEnv":
             s, r, t, _, _ = env.step(action)
         else:
             s, r, t, i = env.step(action)
@@ -126,7 +144,7 @@ def main(problem="single_stock", needs_preproccess=True):
     if needs_preproccess:
         run_preprocessing()
 
-    if problem == "single_stock":
+    if problem == "stock_trader":
         env = create_stock_env(path="./data/train_large_cap_no_fundamentals.csv", model_name="PPO", mode="single_stock_SPY")
         trained_ppo_model = train_agent(env, 250000)
 
@@ -154,10 +172,25 @@ def main(problem="single_stock", needs_preproccess=True):
         df_daily_return_ppo, df_actions_ppo = test_agent(trained_ppo_model, test_env)
         print(df_daily_return_ppo)
         print(df_actions_ppo)
+    elif problem == "simple_stock_trader":
+        env = create_simple_stock_env("./data/train_large_cap_no_fundamentals.csv")
+        # trained_ppo_model = train_agent(env, 1000000)
+
+        # try:
+        #     trained_ppo_model.save("./trained_models/ppo_simple_stock.zip")
+        # except Exception as e:
+        #     print(e)
+
+        test_env = create_simple_stock_env("./data/test_large_cap_no_fundamentals.csv")
+        trained_ppo_model = PPO.load("./trained_models/ppo_simple_stock.zip")
+        df_daily_return_ppo, df_actions_ppo = test_agent(trained_ppo_model, env)
+        print(df_daily_return_ppo)
+        print(df_actions_ppo)
+
     else:
         raise ValueError("please use 'single_stock' or 'portfolio_allocation' for problem")
 
 if __name__ == "__main__":
-    main(problem="single_stock", needs_preproccess=True)
+    main(problem="simple_stock_trader", needs_preproccess=False)
 
 ## Implement own PPO algorithm with 1 stock over time
