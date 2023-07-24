@@ -174,16 +174,16 @@ def main(problem="single_stock", needs_preproccess=True):
         print(df_actions_ppo)
     elif problem == "simple_stock_trader":
         env = create_simple_stock_env("./data/train_large_cap_no_fundamentals.csv")
-        trained_ppo_model = train_agent(env, 250000)
+        # trained_ppo_model = train_agent(env, 1000000)
 
-        try:
-            trained_ppo_model.save("./trained_models/ppo_simple_stock.zip")
-        except Exception as e:
-            print(e)
+        # try:
+        #     trained_ppo_model.save("./trained_models/ppo_simple_stock.zip")
+        # except Exception as e:
+        #     print(e)
 
         test_env = create_simple_stock_env("./data/test_large_cap_no_fundamentals.csv")
         trained_ppo_model = PPO.load("./trained_models/ppo_simple_stock.zip")
-        df_daily_return_ppo, df_actions_ppo = test_agent(trained_ppo_model, test_env)
+        df_daily_return_ppo, df_actions_ppo = test_agent(trained_ppo_model, env)
         print(df_daily_return_ppo)
         print(df_actions_ppo)
 
@@ -191,6 +191,6 @@ def main(problem="single_stock", needs_preproccess=True):
         raise ValueError("please use 'single_stock' or 'portfolio_allocation' for problem")
 
 if __name__ == "__main__":
-    main(problem="simple_stock_trader", needs_preproccess=True)
+    main(problem="simple_stock_trader", needs_preproccess=False)
 
 ## Implement own PPO algorithm with 1 stock over time
