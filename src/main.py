@@ -10,6 +10,7 @@ from tqdm import tqdm
 import requests
 from datetime import datetime, timedelta
 
+import time
 import os 
 import sys
 
@@ -24,6 +25,7 @@ from rl_environments.stock_env import StockTradingEnv
 from rl_environments.simple_stock_env import SimpleStockEnv
 from resources.helper import load_configs
 from models.prebuilt.deep_rl_agent import PPOAgent
+from models.scratch.dqn import Agent, DQN
 
 configs=load_configs()
 
@@ -110,6 +112,16 @@ def test_base_agent(env, timesteps, specified_weight_arr=None):
             break
     return cumulative_rewards
 
+def train_dqn(env, episodes=50):
+    # train_env, _ = env.get_sb_env()
+    agent = Agent(env, M=episodes)
+    agent.train()
+    agent.test()
+
+def test_dqn(env):
+    agent = Agent(env)
+    agent.test()
+
 def test_env_creation(env, action=None, steps=5):
     rewards = []
     if action is None:
@@ -177,15 +189,19 @@ def main(problem="single_stock", needs_preproccess=True):
         # trained_ppo_model = train_agent(env, 1000000)
 
         # try:
-        #     trained_ppo_model.save("./trained_models/ppo_simple_stock.zip")
+        #     trained_ppo_model.save("./trained_models/dqn_simple_stock.zip")
         # except Exception as e:
         #     print(e)
 
         test_env = create_simple_stock_env("./data/test_large_cap_no_fundamentals.csv")
-        trained_ppo_model = PPO.load("./trained_models/ppo_simple_stock.zip")
-        df_daily_return_ppo, df_actions_ppo = test_agent(trained_ppo_model, env)
-        print(df_daily_return_ppo)
-        print(df_actions_ppo)
+        # trained_ppo_model = PPO.load("./trained_models/ppo_simple_stock.zip")
+        # df_daily_return_ppo, df_actions_ppo = test_agent(trained_ppo_model, env)
+        # print(df_daily_return_ppo)
+        # print(df_actions_ppo)
+
+        train_dqn(env, episodes=20)
+        time.sleep(10)
+        test_dqn(test_env)
 
     else:
         raise ValueError("please use 'single_stock' or 'portfolio_allocation' for problem")
