@@ -196,7 +196,11 @@ class Agent:
             # if np.mean(self.r_scores) >= 220:
 
         self.model = self.online_net
-        torch.save(self.online_net.state_dict(), './trained_models/DQN.pt')
+        try:
+            torch.save(self.online_net.state_dict(), './trained_models/DQN.pt')
+            print("model state dict saved sucessfully")
+        except:
+            print("problem saving model")
 
     def test(self):
         print("testing model...")
