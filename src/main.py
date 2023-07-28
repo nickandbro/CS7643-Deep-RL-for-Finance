@@ -16,6 +16,8 @@ import sys
 
 from stable_baselines3 import PPO
 
+import torch
+
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.dirname(SCRIPT_DIR))
 
@@ -26,7 +28,7 @@ from rl_environments.stock_env import StockTradingEnv
 from rl_environments.simple_stock_env import SimpleStockEnv
 from rl_environments.env_creation_functions import *
 
-from resources.helper import load_configs
+from resources.helper import load_configs, maximize_class_probability
 
 from models.prebuilt.deep_rl_agent import PPOAgent
 from models.scratch.dqn import Agent, DQN
@@ -41,12 +43,27 @@ def run_preprocessing():
     test.to_csv("./data/test_large_cap_no_fundamentals.csv")
 
 def train_dqn(env, episodes=50):
-    agent = Agent(env, M=episodes, epsilon_decay=1 - 1e-5, layer_size=128, batch_size=128, C=10)
+    agent = Agent(
+        env,
+        M=episodes,
+        epsilon_decay=1 - 1e-5,
+        layer_size=128,
+        batch_size=128,
+        C=10,
+        model_suffix=configs["SYMBOLS"][0]
+    )
     agent.train()
     agent.test()
 
 def test_dqn(env):
-    agent = Agent(env, epsilon_decay=1 - 1e-5, layer_size=128, batch_size=128, C=10)
+    agent = Agent(
+        env,
+        epsilon_decay=1 - 1e-5,
+        layer_size=128,
+        batch_size=128,
+        C=10,
+        model_suffix= configs["SYMBOLS"][0]
+    )
     agent.test()
 
 def train_ppo(env, timesteps):
@@ -105,7 +122,7 @@ def main(
         print(df_actions_ppo)
     
     elif rl_algorithm == "dqn":
-
+        
         if needs_training:
             train_dqn(env, episodes=75)
         test_dqn(test_env)
@@ -115,13 +132,33 @@ def main(
 
     else:
         raise ValueError("please use 'ppo', 'dqn', or 'a2c' for rl_algorithm")
+    
+def get_best_inputs():
+    model_state_dict = torch.load('./trained_models/DQN.pt')
+    env = create_simple_stock_env("./data/train_large_cap_no_fundamentals.csv")
+    inputs = np.prod(env.observation_space.shape)
+    layer_size = model_state_dict["network_stack.2.weight"].size(0)
+    model = DQN(env=env, LAYER_SIZE=layer_size)
+    model.load_state_dict(model_state_dict)
+    
+    null_inputs = True
+    while null_inputs:
+        good_inputs = maximize_class_probability(model=model, input_size=inputs, class_idx=2, lr=0.01, max_steps=100000)
+        if good_inputs[:,0] != torch.nan:
+            null_inputs=False
+    print(f"buy score: {model(good_inputs)[:,2]}")
+    return good_inputs
 
 if __name__ == "__main__":
-    main(
-        problem="simple_stock_trader", 
-        needs_preproccess=True,
-        needs_training=False,
-        rl_algorithm="dqn",
-        train_path="./data/train_large_cap_no_fundamentals.csv",
-        test_path="./data/test_large_cap_no_fundamentals.csv",
-    )
+    print(get_best_inputs())
+    # main(
+    #     problem="simple_stock_trader", 
+    #     needs_preproccess=True,
+    #     needs_training=False,
+    #     rl_algorithm="dqn",
+    #     train_path="./data/train_large_cap_no_fundamentals.csv",
+    #     test_path="./data/test_large_cap_no_fundamentals.csv",
+    # )
+
+# TODO: Build a clustering algorithm that identifies similar states to good inputs and sorts then takes top 5, it can buy the top 5 and sell the bottom 5.
+# TODO: Even better: run most recent state for all spy stocks through screener. Buy the top 5 and sell and buy when another takes its place in top 5
