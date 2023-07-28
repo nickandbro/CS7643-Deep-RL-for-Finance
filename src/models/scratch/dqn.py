@@ -52,7 +52,9 @@ class Agent:
                  min_epsilon:float=.01,
                  alpha:float=5e-4,
                  C:int=5,
-                 gamma:float=.99):
+                 gamma:float=.99,
+                 model_suffix:str=None,
+                 ):
 
         self.env = env
         self.test_env = env
@@ -100,6 +102,7 @@ class Agent:
         self.optimizer = torch.optim.Adam(self.online_net.parameters(), lr=alpha)
 
         self.model = None
+        self.model_suffix=model_suffix
 
     def _initialize_replay_buffer(self):
 
@@ -196,7 +199,14 @@ class Agent:
             # if np.mean(self.r_scores) >= 220:
 
         self.model = self.online_net
-        torch.save(self.online_net.state_dict(), './trained_models/DQN.pt')
+        try:
+            if self.model_suffix:
+                torch.save(self.online_net.state_dict(), f'./trained_models/DQN_{self.model_suffix}.pt')
+            else:
+                torch.save(self.online_net.state_dict(), './trained_models/DQN.pt')
+            print("model state dict saved sucessfully")
+        except:
+            print("problem saving model")
 
     def test(self):
         print("testing model...")
@@ -220,8 +230,10 @@ class Agent:
                         break
 
         else:
-
-            model_state_dict= torch.load('./trained_models/DQN.pt')
+            if self.model_suffix:
+                model_state_dict= torch.load(f'./trained_models/DQN_{self.model_suffix}.pt')
+            else:
+                model_state_dict= torch.load('./trained_models/DQN.pt')
             self.model = DQN(self.env, self.layer_size)
             self.model.load_state_dict(model_state_dict)
 
