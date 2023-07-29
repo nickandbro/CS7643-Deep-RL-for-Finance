@@ -4,7 +4,9 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.autograd import Variable
 
-def load_configs(config_path="./configs/configs.yml"):
+def load_configs(config_path="../configs/configs.yml"):
+    import os
+    print(os.getcwd())
     with open(config_path) as f:
         configs = yaml.load(f, Loader=yaml.Loader)
     return configs

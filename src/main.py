@@ -134,8 +134,8 @@ def main(
         raise ValueError("please use 'ppo', 'dqn', or 'a2c' for rl_algorithm")
     
 def get_best_inputs():
-    model_state_dict = torch.load('./trained_models/DQN.pt')
-    env = create_simple_stock_env("./data/train_large_cap_no_fundamentals.csv")
+    model_state_dict = torch.load('../trained_models/DQN.pt')
+    env = create_simple_stock_env("../data/train_large_cap_no_fundamentals.csv")
     inputs = np.prod(env.observation_space.shape)
     layer_size = model_state_dict["network_stack.2.weight"].size(0)
     model = DQN(env=env, LAYER_SIZE=layer_size)
