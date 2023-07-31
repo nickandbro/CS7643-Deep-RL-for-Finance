@@ -106,7 +106,7 @@ class Agent:
 
     def _initialize_replay_buffer(self):
 
-        s, _ = self.env.reset()
+        s = self.env.reset()
         D = deque(maxlen=self.N)
 
         for _ in range(self.min_buffer_size):
@@ -134,7 +134,7 @@ class Agent:
         for ep in range(self.M):
 
             episode_r = 0
-            s, _ = self.env.reset()
+            s = self.env.reset()
 
             while True:
 
@@ -213,7 +213,7 @@ class Agent:
         if self.model:
             with torch.no_grad():
                 self.model.eval()
-                s, _ = self.test_env.reset()
+                s = self.test_env.reset()
                 episode_r = 0
 
                 while True:
@@ -231,15 +231,16 @@ class Agent:
 
         else:
             if self.model_suffix:
-                model_state_dict= torch.load(f'./trained_models/DQN_{self.model_suffix}.pt')
+                print(f'../../../trained_models/DQN_{self.model_suffix}.pt')
+                model_state_dict= torch.load(f'../../../trained_models/DQN_{self.model_suffix}.pt')
             else:
-                model_state_dict= torch.load('./trained_models/DQN.pt')
+                model_state_dict= torch.load('../../../trained_models/DQN.pt')
             self.model = DQN(self.env, self.layer_size)
             self.model.load_state_dict(model_state_dict)
 
             with torch.no_grad():
                 self.model.eval()
-                s, _ = self.test_env.reset()
+                s = self.test_env.reset()
                 episode_r = 0
 
                 while True:

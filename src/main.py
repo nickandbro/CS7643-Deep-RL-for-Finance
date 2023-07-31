@@ -1,46 +1,23 @@
-import pandas as pd
-import numpy as np
-
-import yfinance as yf
-import tushare as ts
-from stockstats import StockDataFrame as Sdf
-import stockstats
-
-from tqdm import tqdm
-import requests
-from datetime import datetime, timedelta
-
-import time
-import os 
+import os
 import sys
-
-from stable_baselines3 import PPO
-
 import torch
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.dirname(SCRIPT_DIR))
-
 from preprocessing.preprocess import get_preprocessed_data
-
-from rl_environments.stock_portfolio_env import StockPortfolioEnv
-from rl_environments.stock_env import StockTradingEnv
-from rl_environments.simple_stock_env import SimpleStockEnv
 from rl_environments.env_creation_functions import *
-
 from resources.helper import load_configs, maximize_class_probability
-
 from models.prebuilt.deep_rl_agent import PPOAgent
 from models.scratch.dqn import Agent, DQN
-
+from stable_baselines3 import A2C
+#from models.scratch.a2c import train_a2c, test_a2c  # import the A2C functions
+from models.scratch.a2c_2 import train_model, test_model
 configs=load_configs()
-
-
 def run_preprocessing():
     train, val, test = get_preprocessed_data(symbols=configs["SYMBOLS"])
-    train.to_csv("./data/train_large_cap_no_fundamentals.csv")
-    val.to_csv("./data/val_large_cap_no_fundamentals.csv")
-    test.to_csv("./data/test_large_cap_no_fundamentals.csv")
+    train.to_csv("../data/train_large_cap_no_fundamentals.csv")
+    val.to_csv("../data/val_large_cap_no_fundamentals.csv")
+    test.to_csv("../data/test_large_cap_no_fundamentals.csv")
 
 def train_dqn(env, episodes=50):
     agent = Agent(
@@ -86,8 +63,8 @@ def main(
         needs_preproccess=True,
         needs_training=True,
         rl_algorithm="dqn",
-        train_path="./data/train_large_cap_no_fundamentals.csv",
-        test_path="./data/test_large_cap_no_fundamentals.csv",
+        train_path="../data/train_large_cap_no_fundamentals.csv",
+        test_path="../data/test_large_cap_no_fundamentals.csv",
     ):
     if needs_preproccess:
         run_preprocessing()
@@ -128,7 +105,18 @@ def main(
         test_dqn(test_env)
     
     elif rl_algorithm == "a2c":
-        pass
+        if needs_training:
+            trained_a2c_model = train_model(env)
+            try:
+                torch.save(trained_a2c_model.state_dict(), "../trained_models/a2c_single_stock.pth")
+            except Exception as e:
+                print(e)
+        else:
+            try:
+                trained_a2c_model = torch.load("../trained_models/a2c_single_stock.pth")  # Load the state dict
+            except Exception as e:
+                print("problem loading A2C model")
+            test_model(test_env, trained_a2c_model)
 
     else:
         raise ValueError("please use 'ppo', 'dqn', or 'a2c' for rl_algorithm")
@@ -150,15 +138,8 @@ def get_best_inputs():
     return good_inputs
 
 if __name__ == "__main__":
-    print(get_best_inputs())
-    # main(
-    #     problem="simple_stock_trader", 
-    #     needs_preproccess=True,
-    #     needs_training=False,
-    #     rl_algorithm="dqn",
-    #     train_path="./data/train_large_cap_no_fundamentals.csv",
-    #     test_path="./data/test_large_cap_no_fundamentals.csv",
-    # )
+    #main(rl_algorithm="a2c", problem="simple_stock_trader", needs_preproccess=True)
+    main(rl_algorithm="a2c", needs_preproccess=False, needs_training=False, problem="simple_stock_trader")
 
 # TODO: Build a clustering algorithm that identifies similar states to good inputs and sorts then takes top 5, it can buy the top 5 and sell the bottom 5.
 # TODO: Even better: run most recent state for all spy stocks through screener. Buy the top 5 and sell and buy when another takes its place in top 5

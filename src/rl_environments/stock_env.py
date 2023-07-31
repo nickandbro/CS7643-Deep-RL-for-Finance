@@ -10,7 +10,7 @@ from stable_baselines3.common.vec_env import DummyVecEnv
 import sys
 import os
 
-matplotlib.use("Agg")
+#matplotlib.use("Agg")
 
 # from stable_baselines3.common.logger import Logger, KVWriter, CSVOutputFormat
 

@@ -9,7 +9,7 @@ import matplotlib.dates as mdates
 import os
 import sys
 
-matplotlib.use("Agg")
+#matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from stable_baselines3.common.vec_env import DummyVecEnv
 
