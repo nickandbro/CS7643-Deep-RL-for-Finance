@@ -105,6 +105,7 @@ class SimpleStockEnv(gym.Env):
             print("=================================")
             print("begin_total_asset:{}".format(self.asset_memory[0]))
             print("end_total_asset:{}".format(self.portfolio_value))
+            print(self.day)
 
             weight_df = pd.DataFrame(self.action_memory)
             weight_df.columns = list(self.df.tic.unique())
