@@ -5,10 +5,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="d9544db2-6598-4ddc-8054-9509402a127f" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/src/main.ipynb" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/results/simple_stock_env/actions_memory.csv" beforeDir="false" afterPath="$PROJECT_DIR$/src/results/simple_stock_env/actions_memory.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/results/simple_stock_env/cumulative_reward.png" beforeDir="false" afterPath="$PROJECT_DIR$/src/results/simple_stock_env/cumulative_reward.png" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/results/simple_stock_env/rewards.png" beforeDir="false" afterPath="$PROJECT_DIR$/src/results/simple_stock_env/rewards.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/src/main.ipynb" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
