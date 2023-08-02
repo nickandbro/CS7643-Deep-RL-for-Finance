@@ -133,7 +133,7 @@ def main(
     elif rl_algorithm == "a2c":
         if needs_training:
             trained_a2c_model = train_model(env=env, layer_size=156, learning_rate=0.001, gamma=0.80, critic_coef=0.5,
-                                            entropy_coef=0.01, c=50)
+                                            entropy_coef=0.01, c=5)
 
             try:
                 torch.save(trained_a2c_model.state_dict(), "../trained_models/a2c_single_stock.pth")
@@ -165,7 +165,7 @@ def get_best_inputs():
     return good_inputs
 
 if __name__ == "__main__":
-    main(rl_algorithm="a2c", problem="simple_stock_trader", needs_preproccess=False)
+    #main(rl_algorithm="a2c", problem="simple_stock_trader", needs_preproccess=False)
     main(rl_algorithm="a2c", needs_preproccess=False, needs_training=False, problem="simple_stock_trader")
 
     # main(
