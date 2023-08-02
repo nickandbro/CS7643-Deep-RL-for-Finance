@@ -126,10 +126,10 @@ def plot(data, frame_idx):
         average_value = np.mean(data['values'][-1000:])
         plt.title(f"Frame: {frame_idx} - Average Values: {average_value}")
         plt.plot(data['values'])
-    plt.show()
+    plt.savefig("./a2c_plots")
 
 
-def train_model(env, layer_size=156, learning_rate=0.001, gamma=0.80, critic_coef=0.5, entropy_coef=0.01, c=100):
+def train_model(env=None, layer_size=156, learning_rate=0.001, gamma=0.80, critic_coef=0.5, entropy_coef=0.01, c=100):
     data = {
         'episode_rewards': [],
         'values': []

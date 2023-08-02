@@ -77,7 +77,7 @@ def main(
         test_env = create_stock_portfolio_env(test_path)
     elif problem == "simple_stock_trader":
         env = create_simple_stock_env(train_path)
-        test_env = create_simple_stock_env("../data/test_large_cap_no_fundamentals.csv")
+        test_env = create_simple_stock_env(test_path)
     else:
         raise ValueError("please use 'single_stock', 'portfolio_allocation', or 'simple_stock_trader' for problem")
 
@@ -106,7 +106,8 @@ def main(
     
     elif rl_algorithm == "a2c":
         if needs_training:
-            trained_a2c_model = train_model(env)
+            trained_a2c_model = train_model(env=env, layer_size=156, learning_rate=0.001, gamma=0.80, critic_coef=0.5, entropy_coef=0.01, c=100)
+
             try:
                 torch.save(trained_a2c_model.state_dict(), "../trained_models/a2c_single_stock.pth")
             except Exception as e:
