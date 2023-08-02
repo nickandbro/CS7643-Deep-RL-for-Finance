@@ -11,7 +11,7 @@ from models.prebuilt.deep_rl_agent import PPOAgent
 from models.scratch.dqn import Agent, DQN
 from stable_baselines3 import A2C
 #from models.scratch.a2c import train_a2c, test_a2c  # import the A2C functions
-from models.scratch.a2c_2 import train_model, test_model
+from models.scratch.a2c_3 import train_model, test_model
 configs=load_configs()
 def run_preprocessing():
     train, val, test = get_preprocessed_data(symbols=configs["SYMBOLS"])
@@ -65,7 +65,7 @@ def main(
         rl_algorithm="dqn",
         train_path="../data/train_large_cap_no_fundamentals.csv",
         test_path="../data/test_large_cap_no_fundamentals.csv",
-    ):
+):
     if needs_preproccess:
         run_preprocessing()
 
@@ -77,7 +77,7 @@ def main(
         test_env = create_stock_portfolio_env(test_path)
     elif problem == "simple_stock_trader":
         env = create_simple_stock_env(train_path)
-        test_env = create_simple_stock_env(test_path)
+        test_env = create_simple_stock_env("../data/last_5_percent_new_file (1).csv")
     else:
         raise ValueError("please use 'single_stock', 'portfolio_allocation', or 'simple_stock_trader' for problem")
 
@@ -138,7 +138,7 @@ def get_best_inputs():
     return good_inputs
 
 if __name__ == "__main__":
-    #main(rl_algorithm="a2c", problem="simple_stock_trader", needs_preproccess=True)
+    main(rl_algorithm="a2c", problem="simple_stock_trader", needs_preproccess=True)
     main(rl_algorithm="a2c", needs_preproccess=False, needs_training=False, problem="simple_stock_trader")
 
 # TODO: Build a clustering algorithm that identifies similar states to good inputs and sorts then takes top 5, it can buy the top 5 and sell the bottom 5.

@@ -4,15 +4,19 @@ import numpy as np
 from IPython.display import clear_output
 from IPython.core.debugger import set_trace
 import matplotlib.pyplot as plt
+import torch.nn as nn
+import torch.nn.functional as F
+
+
 
 #max_frames = 5000000
-max_frames =  1102480
-batch_size = 5
-learning_rate = 7e-4
+max_frames = 50000
+batch_size = 1
+learning_rate = 1e-3
 gamma = 0.99
 entropy_coef = 0.01
 critic_coef = 0.5
-no_of_workers = 16
+no_of_workers = 1
 if torch.cuda.is_available():
     FloatTensor = torch.cuda.FloatTensor
     LongTensor = torch.cuda.LongTensor
@@ -27,44 +31,47 @@ data = {
 
 
 class Model(torch.nn.Module):
-    def __init__(self, env):
+    def __init__(self, env, layer_size=256):
         super(Model, self).__init__()
         inputs = np.prod(env.observation_space.shape)
+        self.layer_size = layer_size
         self.features = torch.nn.Sequential(
-            torch.nn.Linear(inputs, 512),
-            torch.nn.ReLU(),
-            torch.nn.Linear(512, 256),
-            torch.nn.ReLU()
+            torch.nn.Linear(inputs, layer_size),
+            torch.nn.Sigmoid(),
+            torch.nn.Linear(layer_size, layer_size),
+            torch.nn.Tanh()
         )
+        self.rnn = nn.GRU(layer_size, 32, 2)
+        self.hidden_2 = nn.Linear(32, 31)
+        self.hidden_state = torch.tensor(torch.zeros(2, 1, 32))
 
-        self.critic = torch.nn.Sequential(
-            torch.nn.Linear(256, 128),
-            torch.nn.ReLU(),
-            torch.nn.Linear(128, 1)
-        )
         self.actor = torch.nn.Sequential(
-            torch.nn.Linear(256, 128),
-            torch.nn.ReLU(),
-            torch.nn.Linear(128, env.action_space.n),
+            torch.nn.Linear(31, env.action_space.n),
             torch.nn.Softmax(dim=-1)
+        )
+        self.critic = torch.nn.Sequential(
+            torch.nn.Linear(31, 1)
         )
 
     def forward(self, x):
         x = self.features(x)
-        x = x.view(x.size(0), -1)
+        x, self.hidden_state = self.rnn(x.view(1, -1, self.layer_size), self.hidden_state.data)
+        x = F.relu(self.hidden_2(x.squeeze()))
         value = self.critic(x)
         actions = self.actor(x)
         return value, actions
 
     def get_critic(self, x):
         x = self.features(x)
-        x = x.view(x.size(0), -1)
-        return self.critic(x)
+        x, self.hidden_state = self.rnn(x.view(1, -1, self.layer_size), self.hidden_state.data)
+        x = F.relu(self.hidden_2(x.squeeze()))
+        value = self.critic(x)
+        #x = F.relu(self.hidden_2(x.squeeze()))
+        return value
 
     def evaluate_action(self, state, action):
         value, actor_features = self.forward(state)
         dist = torch.distributions.Categorical(actor_features)
-
         log_probs = dist.log_prob(action).view(-1, 1)
         entropy = dist.entropy().mean()
 
