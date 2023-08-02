@@ -27,6 +27,8 @@ from rl_environments.stock_portfolio_env import StockPortfolioEnv
 from rl_environments.stock_env import StockTradingEnv
 from rl_environments.simple_stock_env import SimpleStockEnv
 from rl_environments.env_creation_functions import *
+from models.scratch.a2c import train_model, test_model
+
 
 from resources.helper import load_configs, maximize_class_probability
 
@@ -38,9 +40,9 @@ configs=load_configs()
 
 def run_preprocessing():
     train, val, test = get_preprocessed_data(symbols=configs["SYMBOLS"])
-    train.to_csv("./data/train_large_cap_no_fundamentals.csv")
-    val.to_csv("./data/val_large_cap_no_fundamentals.csv")
-    test.to_csv("./data/test_large_cap_no_fundamentals.csv")
+    train.to_csv("../data/train_large_cap_no_fundamentals.csv")
+    val.to_csv("../data/val_large_cap_no_fundamentals.csv")
+    test.to_csv("../data/test_large_cap_no_fundamentals.csv")
 
 def train_dqn(env, episodes=50):
     agent = Agent(
@@ -86,8 +88,8 @@ def main(
         needs_preproccess=True,
         needs_training=True,
         rl_algorithm="dqn",
-        train_path="./data/train_large_cap_no_fundamentals.csv",
-        test_path="./data/test_large_cap_no_fundamentals.csv",
+        train_path="../data/train_large_cap_no_fundamentals.csv",
+        test_path="../data/test_large_cap_no_fundamentals.csv",
     ):
     if needs_preproccess:
         run_preprocessing()
@@ -108,12 +110,12 @@ def main(
         if needs_training:
             trained_ppo_model = train_ppo(env, 250000)
             try:
-                trained_ppo_model.save("./trained_models/ppo_single_stock.zip")
+                trained_ppo_model.save("../trained_models/ppo_single_stock.zip")
             except Exception as e:
                 print(e)
         
         try:
-            trained_ppo_model = PPO.load("./trained_models/ppo_single_stock.zip")
+            trained_ppo_model = PPO.load("../trained_models/ppo_single_stock.zip")
         except Exception as e:
             print("problem loading PPO model")
 
@@ -126,10 +128,23 @@ def main(
         if needs_training:
             train_dqn(env, episodes=75)
         test_dqn(test_env)
-    
-    elif rl_algorithm == "a2c":
-        pass
 
+
+    elif rl_algorithm == "a2c":
+        if needs_training:
+            trained_a2c_model = train_model(env=env, layer_size=156, learning_rate=0.001, gamma=0.80, critic_coef=0.5,
+                                            entropy_coef=0.01, c=50)
+
+            try:
+                torch.save(trained_a2c_model.state_dict(), "../trained_models/a2c_single_stock.pth")
+            except Exception as e:
+                print(e)
+        else:
+            try:
+                trained_a2c_model = torch.load("../trained_models/a2c_single_stock.pth")  # Load the state dict
+            except Exception as e:
+                print("problem loading A2C model")
+            test_model(test_env,layer_size=156, state_dict=trained_a2c_model)
     else:
         raise ValueError("please use 'ppo', 'dqn', or 'a2c' for rl_algorithm")
     
@@ -150,7 +165,9 @@ def get_best_inputs():
     return good_inputs
 
 if __name__ == "__main__":
-    print(get_best_inputs())
+    main(rl_algorithm="a2c", problem="simple_stock_trader", needs_preproccess=False)
+    main(rl_algorithm="a2c", needs_preproccess=False, needs_training=False, problem="simple_stock_trader")
+
     # main(
     #     problem="simple_stock_trader", 
     #     needs_preproccess=True,
