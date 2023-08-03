@@ -22,6 +22,7 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.dirname(SCRIPT_DIR))
 
 from preprocessing.preprocess import get_preprocessed_data
+from preprocessing.state_generator import get_current_state
 
 from rl_environments.stock_portfolio_env import StockPortfolioEnv
 from rl_environments.stock_env import StockTradingEnv
@@ -46,11 +47,8 @@ def train_dqn(env, episodes=50):
     agent = Agent(
         env,
         M=episodes,
-        epsilon_decay=1 - 1e-5,
-        layer_size=128,
-        batch_size=128,
-        C=10,
-        model_suffix=configs["SYMBOLS"][0]
+        model_suffix=configs["SYMBOLS"][0],
+        **configs["DQN_PARAMS"]
     )
     agent.train()
     agent.test()
@@ -58,11 +56,8 @@ def train_dqn(env, episodes=50):
 def test_dqn(env):
     agent = Agent(
         env,
-        epsilon_decay=1 - 1e-5,
-        layer_size=128,
-        batch_size=128,
-        C=10,
-        model_suffix= configs["SYMBOLS"][0]
+        model_suffix= configs["SYMBOLS"][0],
+        **configs["DQN_PARAMS"]
     )
     agent.test()
 
@@ -99,8 +94,8 @@ def main(
         env = create_stock_portfolio_env(train_path)
         test_env = create_stock_portfolio_env(test_path)
     elif problem == "simple_stock_trader":
-        env = create_simple_stock_env(train_path)
-        test_env = create_simple_stock_env(test_path)
+        env = create_simple_stock_env(train_path, data_set="train")
+        test_env = create_simple_stock_env(test_path, data_set="test")
     else:
         raise ValueError("please use 'single_stock', 'portfolio_allocation', or 'simple_stock_trader' for problem")
 
@@ -124,7 +119,8 @@ def main(
     elif rl_algorithm == "dqn":
         
         if needs_training:
-            train_dqn(env, episodes=75)
+            train_dqn(env, episodes=100)
+        test_dqn(env)
         test_dqn(test_env)
     
     elif rl_algorithm == "a2c":
@@ -149,16 +145,32 @@ def get_best_inputs():
     print(f"buy score: {model(good_inputs)[:,2]}")
     return good_inputs
 
-if __name__ == "__main__":
-    print(get_best_inputs())
-    # main(
-    #     problem="simple_stock_trader", 
-    #     needs_preproccess=True,
-    #     needs_training=False,
-    #     rl_algorithm="dqn",
-    #     train_path="./data/train_large_cap_no_fundamentals.csv",
-    #     test_path="./data/test_large_cap_no_fundamentals.csv",
-    # )
+def get_buy_signals(current_state_df, indicators):
 
-# TODO: Build a clustering algorithm that identifies similar states to good inputs and sorts then takes top 5, it can buy the top 5 and sell the bottom 5.
-# TODO: Even better: run most recent state for all spy stocks through screener. Buy the top 5 and sell and buy when another takes its place in top 5
+    model_state_dict = torch.load('./trained_models/DQN.pt')
+    env = create_simple_stock_env("./data/train_large_cap_no_fundamentals.csv")
+    inputs = np.prod(env.observation_space.shape)
+    layer_size = model_state_dict["network_stack.2.weight"].size(0)
+    model = DQN(env=env, LAYER_SIZE=layer_size)
+    model.load_state_dict(model_state_dict)
+
+    df = current_state_df[indicators].to_numpy()
+    df = np.hstack((df, np.zeros(shape=df.shape[0]).reshape(-1,1)))
+    df = np.hstack((df, np.zeros(shape=df.shape[0]).reshape(-1,1)))
+    X = torch.tensor(df)
+    y = model(X)[:,2]
+    current_state_df["buy_signal"] = y.detach().numpy()
+    return current_state_df.sort_values(by="buy_signal", ascending=False)
+
+if __name__ == "__main__":
+    # current_state_df = get_current_state(needs_preprocessing=False)
+    # df = get_buy_signals(current_state_df=current_state_df, indicators=configs["INDICATORS"]["TECHNICAL"])
+    # df.to_csv("./data/current_best_states.csv")
+    main(
+        problem="simple_stock_trader", 
+        needs_preproccess=False,
+        needs_training=False,
+        rl_algorithm="dqn",
+        train_path="./data/train_large_cap_no_fundamentals.csv",
+        test_path="./data/test_large_cap_no_fundamentals.csv",
+    )

@@ -23,6 +23,7 @@ class SimpleStockEnv(gym.Env):
     def __init__(
             self,
             df: pd.DataFrame,
+            data_set:str,
             stock_dim: int,
             initial_amount: int,
             indicators: list[str],
@@ -36,6 +37,7 @@ class SimpleStockEnv(gym.Env):
         self.initial_amount = initial_amount
         self.indicators = indicators
         self.start_all_cash = start_all_cash
+        self.data_set = data_set
         
         self.reward = 0
         self.trades = 0
@@ -52,6 +54,7 @@ class SimpleStockEnv(gym.Env):
         self.action_memory = []
         self.reward_memory = []
         self.date_memory = [self.data.date.unique()[0]]
+        self.episode_rewards = list()
 
         self.terminal = False
         self.holds_stock = False
@@ -63,20 +66,25 @@ class SimpleStockEnv(gym.Env):
             df = pd.DataFrame(np.array(self.asset_memory)/self.initial_amount)
             df.columns = ["daily_return"]
             df["date"] = self.date_memory
+
+            df.to_csv(
+                f"./results/simple_stock_env/account_value_{self.data_set}.csv"
+            )
+            
             fig, ax = plt.subplots(1,1,figsize=(8,6))
             ax.plot("date", "daily_return", data=df)
-            ax.xaxis.set_major_locator(mdates.MonthLocator(bymonth=(1, 7)))
+            ax.xaxis.set_major_locator(mdates.MonthLocator(bymonth=(1)))
 
             path = f"./results/simple_stock_env"
             if not os.path.exists(path):
                 os.makedirs(path)
             
             plt.gcf().autofmt_xdate()
-            plt.savefig("results/simple_stock_env/cumulative_reward.png")
+            plt.savefig(f"results/simple_stock_env/cumulative_reward_{self.data_set}.png")
             plt.close()
 
             plt.plot(self.portfolio_return_memory, "r")
-            plt.savefig("results/simple_stock_env/rewards.png")
+            plt.savefig(f"results/simple_stock_env/rewards_{self.data_set}.png")
             plt.close()
 
             print("=================================")
@@ -86,9 +94,11 @@ class SimpleStockEnv(gym.Env):
             weight_df = pd.DataFrame(self.action_memory)
             weight_df.columns = list(self.df.tic.unique())
             weight_df.index = self.date_memory[:-1]
-            weight_df.to_csv("results/simple_stock_env/actions_memory.csv")
-            
+            weight_df.to_csv(f"results/simple_stock_env/actions_memory_{self.data_set}.csv")
 
+            self.episode_rewards.append(self.portfolio_value)
+            pd.DataFrame(self.episode_rewards).to_csv(f"results/simple_stock_env/portfolio_value_{self.data_set}.csv")
+            
             df_daily_return = pd.DataFrame(self.portfolio_return_memory)
             df_daily_return.columns = ["daily_return"]
             if df_daily_return["daily_return"].std() != 0:

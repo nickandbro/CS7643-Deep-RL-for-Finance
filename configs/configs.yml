@@ -9,7 +9,7 @@ DATES:
     START_DATE : "2021-12-01"
     END_DATE : "2023-07-01"
   
-SYMBOLS: ["NVDA"]
+SYMBOLS: ["SPY"]
 
 INDICATORS : 
   TECHNICAL : [
@@ -48,6 +48,15 @@ PPO_PARAMS : {
         "gamma": 0.99, #.9999 for longer rewards
         }
     }
+
+DQN_PARAMS: {
+  "epsilon_decay": 0.999998, # .999998 -- Default
+  "layer_size": 128, #128 -- Default
+  "batch_size": 128, #128 -- Default
+  "gamma": .99, #gamma .99 -- Default
+  "C": 15, # 5 -- default
+  "alpha": 0.0003, # Learning Rate -- .0003 -- Default
+}
 
 # # Model Parameters
 # A2C_PARAMS : {"n_steps": 5, "ent_coef": 0.01, "learning_rate": 0.0007}
