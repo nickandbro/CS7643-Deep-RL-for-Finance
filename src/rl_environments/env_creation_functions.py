@@ -71,7 +71,7 @@ def create_stock_env(path, model_name, mode):
     )
     return env
 
-def create_simple_stock_env(path):
+def create_simple_stock_env(path, data_set):
     df = pd.read_csv(path, index_col="Unnamed: 0")
     df.index = df.reset_index()["index"] - df.reset_index()["index"].min()
     num_stocks = len(df.tic.unique())
@@ -80,6 +80,7 @@ def create_simple_stock_env(path):
     ind = configs["INDICATORS"]["TECHNICAL"] #+ configs["INDICATORS"]["FUNDAMENTAL"]
     env = SimpleStockEnv(
         df=df,
+        data_set=data_set,
         stock_dim=num_stocks,
         initial_amount=1000000,
         indicators=ind,

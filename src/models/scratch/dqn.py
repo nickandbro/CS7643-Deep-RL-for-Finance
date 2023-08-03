@@ -231,7 +231,7 @@ class Agent:
 
         else:
             if self.model_suffix:
-                model_state_dict= torch.load(f'./trained_models/DQN_{self.model_suffix}.pt')
+                model_state_dict= torch.load(f'./trained_models/archive/DQN_{self.model_suffix}_v3.pt')
             else:
                 model_state_dict= torch.load('./trained_models/DQN.pt')
             self.model = DQN(self.env, self.layer_size)
